@@ -1,6 +1,7 @@
-import urllib.request, json
+import os, urllib.request, json
+from config import NEXUS_API_KEY
 
-API_KEY = "Fenw8ZiSyY1z92B0NFYEHvzJSDu9HBEz7HDRYmaKlBq0EkKul17gfl/1--FXAYDGeYvBNz+zIs--I9DeGmW/pRaCe+mARTGeZg=="
+API_KEY = NEXUS_API_KEY or os.environ.get("NEXUS_API_KEY", "")
 
 def test_api(endpoint_name, url):
     print(f"\n=== 测试: {endpoint_name} ===")

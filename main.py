@@ -1,40 +1,64 @@
-from scanner import scan_mods
-from nexus_api import check_nexus_latest_version
-from version_check import check_version
+"""
+星露谷物语 MOD 检查工具 — 统一入口
+双击运行: 原生桌面窗口
+命令行:
+    ModChecker.exe web              Web 前端（浏览器）
+    ModChecker.exe cli              CLI 交互模式
+    ModChecker.exe fix --auto      自动修复
+"""
+import sys
 
-def main():
-    print("星露谷物语 MOD 检查工具")
-    print("=" * 60)
-    
-    print("\n[1/3] 扫描本地MOD...")
-    mods = scan_mods()
-    print(f"共找到 {len(mods)} 个MOD\n")
-    
-    print("[2/3] 查询N网最新版本...")
-    for i, m in enumerate(mods):
-        print(f"  ({i+1}/{len(mods)}) {m['name']} (N网ID={m['nexus_id'] or '无'})")
-        if m['nexus_id']:
-            latest = check_nexus_latest_version(m['nexus_id'])
-            m['latest_version'] = latest
-            if latest:
-                print(f"    → 本地 v{m['version']}  vs  N网 v{latest}")
-            else:
-                print(f"    → 查询失败")
-        else:
-            m['latest_version'] = None
-            print(f"    → 无N网ID，跳过")
-    
-    print("\n[3/3] 版本检查结果")
-    print("=" * 60)
-    
-    results = check_version(mods)
-    
-    for r in results:
-        print(f"\n📦 {r['name']}")
-        print(f"   本地版本: v{r['local_version']}")
-        if r['latest_version']:
-            print(f"   N网最新: v{r['latest_version']}")
-        print(f"   状态: {'✅' if r['status']=='已是最新版本' else '⚠️' if r['status']=='有可用更新' else 'ℹ️'} {r['status']}")
+
+def run_cli() -> None:
+    from scan_cli import main
+    main()
+
+
+def run_fix() -> None:
+    from fix_mode import main
+    main()
+
+
+def run_web() -> None:
+    """Web 前端 — 浏览器中打开"""
+    import webbrowser, threading, time
+    def _open():
+        time.sleep(0.5)
+        webbrowser.open("http://127.0.0.1:8090")
+    threading.Thread(target=_open, daemon=True).start()
+    from web.app import run_server
+    run_server()
+
+
+def run_gui() -> None:
+    """原生桌面窗口"""
+    from gui.app import run_gui
+    run_gui()
+
+
+def main() -> None:
+    # 无参数 = 双击 → 原生窗口
+    if len(sys.argv) < 2:
+        run_gui()
+        return
+
+    cmd = sys.argv[1].lower()
+
+    if cmd == "web":
+        sys.argv.pop(1)
+        run_web()
+    elif cmd in ("cli", "cmd", "terminal"):
+        sys.argv.pop(1)
+        run_cli()
+    elif cmd in ("fix", "repair"):
+        sys.argv.pop(1)
+        run_fix()
+    elif cmd in ("gui", "window"):
+        sys.argv.pop(1)
+        run_gui()
+    else:
+        run_cli()
+
 
 if __name__ == "__main__":
     main()

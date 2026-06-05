@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ModChecker — 星露谷物语 MOD 管理</title>
+    <style>
+        :root { --bg:#0f1117; --surface:#1a1d27; --border:#2a2d3a; --text:#c9d1d9; --dim:#6e7681; --green:#3fb950; --red:#f85149; --yellow:#d2991d; --blue:#58a6ff; --accent:#1f6feb; }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+        .app{display:flex;height:100vh;}
+        .sidebar{width:340px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+        .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+        .header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+        .header h1{font-size:18px;color:var(--green);}
+        .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+        .toolbar{padding:12px 16px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);}
+        .btn{padding:7px 14px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer;font-size:12px;transition:all .15s;}
+        .btn:hover{background:#252836;border-color:var(--accent);}
+        .btn:disabled{opacity:.4;cursor:not-allowed;}
+        .btn-a{background:var(--accent);border-color:var(--accent);color:#fff;}
+        .btn-d{border-color:var(--red);color:var(--red);}
+        .btn-d:hover{background:var(--red);color:#fff;}
+        .mod-list{flex:1;overflow-y:auto;padding:6px 10px;}
+        .mod-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .1s;margin:1px 0;}
+        .mod-item:hover{background:#212431;}
+        .mod-item.active{background:var(--accent);}
+        .mod-item .icon{font-size:16px;width:24px;text-align:center;flex-shrink:0;}
+        .mod-item .info{flex:1;min-width:0;}
+        .mod-item .name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .mod-item .meta{font-size:10px;color:var(--dim);}
+        .badge{font-size:10px;padding:2px 7px;border-radius:10px;flex-shrink:0;}
+        .badge-ok{background:#1a3a1a;color:var(--green);}.badge-w{background:#3a2e0a;color:var(--yellow);}.badge-r{background:#3a1515;color:var(--red);}
+        .search{padding:6px 10px;}.search input{width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;outline:none;}.search input:focus{border-color:var(--accent);}
+        .detail{flex:1;overflow-y:auto;padding:20px 24px;}
+        .detail h2{font-size:20px;margin-bottom:4px;}
+        .detail .ver{color:var(--dim);font-size:13px;margin-bottom:14px;}
+        .section{margin:14px 0;padding:14px 16px;background:var(--surface);border-radius:8px;border:1px solid var(--border);}
+        .section h3{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+        .row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;}
+        .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;margin:2px 3px 2px 0;}
+        .tg{background:#1a3a1a;color:var(--green);}.tr{background:#3a1515;color:var(--red);}.ty{background:#3a2e0a;color:var(--yellow);}
+        .panel{padding:20px 24px;overflow-y:auto;}
+        .issue-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin:8px 0;}
+        .issue-card .type{font-size:11px;color:var(--dim);text-transform:uppercase;}
+        .issue-card .msg{margin:4px 0;font-size:13px;}
+        .statusbar{padding:8px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--dim);display:flex;justify-content:space-between;}
+        .tabs{display:flex;border-bottom:1px solid var(--border);}
+        .tab{padding:10px 20px;cursor:pointer;font-size:13px;color:var(--dim);border-bottom:2px solid transparent;transition:all .15s;}
+        .tab:hover{color:var(--text);}.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+        .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--dim);gap:12px;font-size:14px;}
+        .empty .icon{font-size:48px;}
+        ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+        .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;}
+        @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+    <div class="header"><span class="dot"></span><h1>ModChecker</h1></div>
+    <div class="toolbar">
+        <button class="btn btn-a" onclick="scanMods()" id="btn-scan">🔄 扫描</button>
+        <button class="btn" onclick="runDiagnose()">🔍 诊断</button>
+        <button class="btn btn-d" onclick="runFix(false)">🔧 修复</button>
+    </div>
+    <div class="search"><input type="text" placeholder="搜索 MOD..." oninput="filterMods(this.value)"></div>
+    <div class="mod-list" id="modList"><div class="empty"><div class="icon">📦</div>点击「扫描」加载 MOD</div></div>
+    <div class="statusbar"><span id="modCount">—</span><span id="statsOk"></span></div>
+</aside>
+<main class="main">
+    <div class="tabs">
+        <div class="tab active" data-tab="detail" onclick="showTab('detail')">📄 详情</div>
+        <div class="tab" data-tab="diagnose" onclick="showTab('diagnose')">🔍 诊断</div>
+        <div class="tab" data-tab="fix" onclick="showTab('fix')">🔧 修复</div>
+    </div>
+    <div class="detail" id="tb-detail"><div class="empty"><div class="icon">👈</div>选择一个 MOD 查看详情</div></div>
+    <div class="panel" id="tb-diagnose" style="display:none"><div class="empty"><div class="icon">🔍</div>点击「诊断」按钮开始</div></div>
+    <div class="panel" id="tb-fix" style="display:none"><div class="empty"><div class="icon">🔧</div>诊断后点击「修复」按钮</div></div>
+</main>
+</div>
+<script>
+const A='/api';let mods=[],sel=null,diag=null;
+async function go(u,o={}){const r=await fetch(u,o);if(!r.ok)throw new Error(r.status);return r.json()}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+async function scanMods(){
+    const b=document.getElementById('btn-scan');b.disabled=true;b.innerHTML='<span class="spinner"></span>';
+    try{mods=await go(A+'/mods');renderMods();document.getElementById('modCount').textContent=`${mods.length} 个 MOD`}
+    catch(e){document.getElementById('modList').innerHTML='<div class="empty">❌ 扫描失败</div>'}
+    b.disabled=false;b.textContent='🔄 扫描';
+}
+function renderMods(){
+    const c=document.getElementById('modList');
+    if(!mods.length){c.innerHTML='<div class="empty">📭 未找到</div>';return}
+    c.innerHTML=mods.map((m,i)=>{
+        const ic=m.type==='ContentPatcher包'?'🎨':m.type==='SMAPI插件'?'⚙️':'📁';
+        return `<div class="mod-item" onclick="selMod(${i})" id="m-${i}">
+            <span class="icon">${ic}</span><span class="info"><div class="name">${esc(m.name)}</div><div class="meta">v${m.version} · ${m.type}</div></span>
+            ${m.nexus_id?`<span class="badge badge-ok">N${m.nexus_id}</span>`:''}</div>`}).join('');
+}
+function filterMods(q){document.querySelectorAll('.mod-item').forEach(e=>{e.style.display=e.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'})}
+async function selMod(i){
+    document.querySelectorAll('.mod-item').forEach(e=>e.classList.remove('active'));
+    document.getElementById('m-'+i)?.classList.add('active');sel=mods[i];showTab('detail');
+    const el=document.getElementById('tb-detail');el.innerHTML='<div class="empty"><span class="spinner"></span></div>';
+    try{const d=await go(A+'/mods/'+encodeURIComponent(sel.name));if(d.error){el.innerHTML=`<div class="empty">❌ ${d.error}</div>`;return}renderDetail(d)}
+    catch(e){el.innerHTML='<div class="empty">❌ 加载失败</div>'}
+}
+function renderDetail(d){
+    const q=d.quick_status||{},s=d.smapi_status||{},dp=d.dependencies||{},cf=d.conflicts||[],mc=d.map_conflicts||[],rc=d.recommendations||[];
+    const sc={'适配当前版本':'tg','已加载':'tg','很久未更新':'ty','被跳过':'ty','加载失败':'tr','日志中未出现':'tr'};
+    document.getElementById('tb-detail').innerHTML=`
+        <h2>${esc(d.name)} <span style="font-size:14px;color:var(--dim)">v${d.version}</span></h2><div class="ver">${d.mod_type}</div>
+        <div class="section"><h3>📊 状态</h3>
+            <div class="row"><span>快筛</span><span class="tag ${sc[q.status_text]||''}">${q.status_text||'未知'}</span></div>
+            ${q.latest_version?`<div class="row"><span>N网最新</span><span>v${q.latest_version}</span></div>`:''}
+            ${q.updated_time?`<div class="row"><span>最后更新</span><span>${q.updated_time.slice(0,10)}</span></div>`:''}
+            <div class="row"><span>SMAPI</span><span class="tag ${sc[s.status_text]||''}">${s.status_text||'未知'}</span></div>
+            ${s.detail?`<div class="row"><span>详情</span><span>${esc(s.detail)}</span></div>`:''}</div>
+        <div class="section"><h3>📦 依赖</h3>${dp.missing&&dp.missing.length?dp.missing.map(x=>`<span class="tag tr">❌ ${esc(x)}</span>`).join(' '):'<span class="tag tg">✅ 完整</span>'}</div>
+        ${cf.length?`<div class="section"><h3>⚠️ CP 冲突 (${cf.length})</h3>${cf.slice(0,5).map(c=>`<div style="font-size:12px;padding:3px 0">${typeof c==='string'?esc(c):JSON.stringify(c)}</div>`).join('')}</div>`:''}
+        ${mc.length?`<div class="section"><h3>🗺️ 地图冲突 (${mc.length})</h3>${mc.slice(0,5).map(m=>`<div style="font-size:12px;padding:3px 0">${esc(m.file)} ← ${(m.conflicting_mods||[]).join(', ')}</div>`).join('')}</div>`:''}
+        ${rc.length?`<div class="section"><h3>💡 建议</h3>${rc.map(r=>`<div style="font-size:13px;padding:2px 0">• ${esc(r)}</div>`).join('')}</div>`:''}`;
+}
+async function runDiagnose(){
+    const el=document.getElementById('tb-diagnose');el.innerHTML='<div class="empty"><span class="spinner"></span></div>';showTab('diagnose');
+    try{diag=await go(A+'/diagnose');renderDiag(diag)}catch(e){el.innerHTML='<div class="empty">❌ 失败</div>'}
+}
+function renderDiag(d){
+    const is=d.issues||[],au=is.filter(i=>i.category==='auto'),mn=is.filter(i=>i.category==='manual'),el=document.getElementById('tb-diagnose');
+    if(!is.length){el.innerHTML='<div class="empty"><div class="icon">✅</div>没有发现任何问题！</div>';return}
+    el.innerHTML=`<h2>诊断结果</h2><p style="color:var(--dim);margin:8px 0">🔧 ${au.length} 可自动修复 · ⚠️ ${mn.length} 需手动</p>
+        ${au.map(i=>`<div class="issue-card"><div class="type">🔧 ${i.action} · 可自动修复</div><div class="msg">${esc(i.detail)}</div></div>`).join('')}
+        ${mn.map(i=>`<div class="issue-card"><div class="type">⚠️ ${i.action} · 需手动</div><div class="msg">${esc(i.detail)}</div></div>`).join('')}`;
+}
+async function runFix(dry=false){
+    const el=document.getElementById('tb-fix');el.innerHTML=`<div class="empty"><span class="spinner"></span>${dry?'预览中...':'修复中...'}</div>`;showTab('fix');
+    try{const r=await go(A+'/fix',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dry_run:dry})});renderRes(r,dry)}
+    catch(e){el.innerHTML='<div class="empty">❌ 失败</div>'}
+}
+function renderRes(r,dry){
+    const f=r.filter(x=>x.status==='fixed'),p=r.filter(x=>x.status==='partial'),e=r.filter(x=>x.status==='error');
+    document.getElementById('tb-fix').innerHTML=`<h2>${dry?'🔍 预览':'🔧 修复结果'}</h2>
+        ${f.length?`<div class="section"><h3>✅ 成功 (${f.length})</h3>${f.map(x=>`<div style="font-size:13px;padding:2px 0;color:var(--green)">✓ ${esc(x.message)}</div>`).join('')}</div>`:''}
+        ${p.length?`<div class="section"><h3>⚠️ 部分 (${p.length})</h3>${p.map(x=>`<div style="font-size:13px;padding:2px 0;color:var(--yellow)">~ ${esc(x.message)}</div>`).join('')}</div>`:''}
+        ${e.length?`<div class="section"><h3>❌ 失败 (${e.length})</h3>${e.map(x=>`<div style="font-size:13px;padding:2px 0;color:var(--red)">✗ ${esc(x.message)}</div>`).join('')}</div>`:''}
+        ${!f.length&&!p.length&&!e.length?'<div class="empty">✅ 没有需要修复的问题</div>':''}`;
+}
+function showTab(n){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelector(`[data-tab="${n}"]`)?.classList.add('active');
+    ['detail','diagnose','fix'].forEach(x=>{document.getElementById('tb-'+x).style.display=x===n?'':'none'});
+    if(n==='diagnose')runDiagnose();
+}
+scanMods();
+</script>
+</body>
+</html>

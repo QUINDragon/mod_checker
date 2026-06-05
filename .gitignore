@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# 虚拟环境
+venv/
+.env
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 构建产物
+dist/
+build/
+*.spec
+reports/
+patches/
+
+# 备份
+auto_fix/backup/
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# 日志
+*.log
+
+config.json

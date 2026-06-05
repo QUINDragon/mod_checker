@@ -1,0 +1,11 @@
+﻿{
+    "Name": "[测试] 兼容补丁示例",
+    "Author": "ModChecker Test",
+    "Version": "1.0.0",
+    "Description": "用于测试Vortex识别的示例补丁包",
+    "UniqueID": "ModChecker.TestPatch",
+    "ContentPackFor": {
+        "UniqueID": "Pathoschild.ContentPatcher"
+    },
+    "UpdateKeys": []
+}
